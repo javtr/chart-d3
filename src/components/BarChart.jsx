@@ -1,59 +1,75 @@
-import React, { useState, useEffect, useRef } from "react";
-import * as d3 from "d3";
+import React, { useEffect, useRef } from 'react';
+import * as d3 from 'd3';
 
-export const BarChart = () => {
-  const [data] = useState([200, 600, 500, 400, 80, 300]);
-  const svgRef = useRef();
+const BarChart = ({ data }) => {
+  
+  const chartRef = useRef(null);
 
   useEffect(() => {
-    //setting up svg container
-    const w = 350;
-    const h = 200;
-
-    const svg = d3
-      .select(svgRef.current)
-      .attr("width", w)
-      .attr("height", h)
-      .style("overflow", "visible")
-      .style("margin-top", "75px")
-      .style("margin-left", "75px");
-
-    //setting up scaling
-    const xScale = d3
-      .scaleBand()
-      .domain(data.map((val, i) => i))
-      .range([0, w])
-      .padding(0.2);
-
-    const yScale = d3.scaleLinear().domain([0,getMaxData(data)]).range([h, 0]);
-
-    //setting up axes
-    const xAxis = d3.axisBottom(xScale).ticks(data.length);
-    const yAxis = d3.axisLeft(yScale).ticks(10);
-
-    svg.append("g").call(xAxis).attr("transform", `translate(0, ${h})`);
-    svg.append("g").call(yAxis);
-
-    //setting up svg data
-    svg
-      .selectAll(".bar")
-      .data(data)
-      .join("rect")
-      .attr("x", (v, i) => xScale(i))
-      .attr("y", yScale)
-      .attr("width", xScale.bandwidth())
-      .attr("height", (val) => h - yScale(val));
+    if (data && chartRef.current) {
+      createBarChart();
+    }
   }, [data]);
 
-  //funciones
+  const createBarChart = () => {
+    const chartContainer = d3.select(chartRef.current);
+    const chartWidth = 400;
+    const chartHeight = 300;
+    const margin = { top: 20, right: 20, bottom: 30, left: 40 };
+    const width = chartWidth - margin.left - margin.right;
+    const height = chartHeight - margin.top - margin.bottom;
 
-  function getMaxData(d) {
-    return Math.max(...d) + Math.max(...d) * 0.25;
-  }
+    chartContainer.selectAll('*').remove();
 
-  return (
-    <div>
-      <svg ref={svgRef}></svg>
-    </div>
-  );
+    const svg = chartContainer
+      .append('svg')
+      .attr('width', chartWidth)
+      .attr('height', chartHeight)
+      .style('overflow', 'scroll');
+
+    const chart = svg
+      .append('g')
+      .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+    const x = d3
+      .scaleBand()
+      .range([0, width])
+      .padding(0.1)
+      .domain(data.slice(0, 5).map(d => d.label));
+
+    const y = d3
+      .scaleLinear()
+      .range([height, 0])
+      .domain([0, d3.max(data, d => d.value)]);
+
+    chart
+      .append('g')
+      .attr('class', 'x-axis')
+      .attr('transform', `translate(0, ${height})`)
+      .call(d3.axisBottom(x))
+
+      
+
+    chart
+      .append('g')
+      .attr('class', 'y-axis')
+      .call(d3.axisLeft(y).ticks(5));
+
+    chart
+      .selectAll('.bar')
+      .data(data.slice(0, 5))
+      .enter()
+      .append('rect')
+      .attr('class', 'bar')
+      .attr('x', d => x(d.label))
+      .attr('y', d => y(d.value))
+      .attr('width', x.bandwidth())
+      .attr('height', d => height - y(d.value))
+
+      ;
+  };
+
+  return <div ref={chartRef}></div>;
 };
+
+export default BarChart;
