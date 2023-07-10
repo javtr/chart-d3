@@ -44,6 +44,7 @@ const Test01 = ({ tempData }) => {
       .attr("width", responsiveDIVWidth)
       .attr("height", responsiveDIVHeight)
       .attr("transform", "translate(0, 0)");
+
     svgX
       .append("g")
       .attr("class", "x axis")
@@ -81,23 +82,44 @@ const Test01 = ({ tempData }) => {
 
     function dragged(event) {
       const dx = event.dx;
-      const currentTransform = parseFloat(
-        svgX.attr("transform").split("(")[1].split(",")[0]
-      );
-      const newTransform = currentTransform + dx;
 
-      //obtener el ancho del chart actual
-      const chartContainer = d3.select(horizontalSVGRef.current);
-      const containerWidth = chartContainer
-        .node()
-        .getBoundingClientRect().width;
+      //cuerpo del chart
+      if (event.y < responsiveDIVHeight - padding) {
+        const currentTransform = parseFloat(
+          svgX.attr("transform").split("(")[1].split(",")[0]
+        );
+        const newTransform = currentTransform + dx;
 
-      //restringir drag si se pasan lo limites del chart
-      if (
-        newTransform < 0 &&
-        Math.abs(newTransform) + containerWidth < responsiveDIVWidth
-      ) {
-        svgX.attr("transform", `translate(${newTransform}, 0)`);
+        //obtener el ancho del chart actual
+        const chartContainer = d3.select(horizontalSVGRef.current);
+        const containerWidth = chartContainer
+          .node()
+          .getBoundingClientRect().width;
+
+        //restringir drag si se pasan lo limites del chart
+        if (
+          newTransform < 0 &&
+          Math.abs(newTransform) + containerWidth < responsiveDIVWidth
+        ) {
+          svgX.attr("transform", `translate(${newTransform}, 0)`);
+        }
+      } //eje del chart
+      else {
+        //ancho de las barras
+        const currentRange = x.range();
+        const responsiveDIVWidth2 = currentRange[1] + dx;
+
+        x.rangeRound([0, responsiveDIVWidth2])
+          .padding(0.5)
+          .domain(tempData.map((d) => d.Type));
+
+        svgX
+          .selectAll(".bar")
+          .data(tempData, (d) => d.Type)
+          .attr("x", (d) => x(d.Type))
+          .attr("width", x.bandwidth());
+
+        svgX.select(".x.axis").call(d3.axisBottom(x));
       }
     }
   };
